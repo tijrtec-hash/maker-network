@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MarqueeText } from "./MarqueeText";
 
 interface SectionCardProps {
   type: "video" | "doc" | "prompt";
@@ -44,6 +45,10 @@ export function SectionCard({ type, slug, label, count }: SectionCardProps) {
         WebkitBackdropFilter: "blur(14px)",
         textDecoration: "none",
         transition: "border-color 150ms ease, transform 150ms ease",
+        minWidth: 0,
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
       }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-accent)"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "oklch(0.28 0.04 280 / 0.5)"; }}
@@ -51,8 +56,8 @@ export function SectionCard({ type, slug, label, count }: SectionCardProps) {
       <div style={{ width: 38, height: 38, borderRadius: 10, background: "oklch(0.45 0.20 292 / 0.18)", color: "var(--accent-bright)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         {typeIcon[type]}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</p>
+      <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+        <MarqueeText text={label} style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }} />
         {typeof count === "number" && (
           <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>{count} {count === 1 ? "item" : "itens"}</p>
         )}

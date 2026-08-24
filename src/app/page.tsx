@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { VideoTab } from "./components/VideoTab";
 import { DocsTab } from "./components/DocsTab";
 import { PromptsTab } from "./components/PromptsTab";
@@ -16,9 +16,56 @@ const tabLabels: Record<Tab, string> = {
   prompts: "prompts",
 };
 
+const tabOrder: Tab[] = ["videos", "docs", "prompts"];
+const SWIPE_MIN_DISTANCE = 50; // px m\u00ednimos para considerar um swipe v\u00e1lido
+const SWIPE_MAX_VERTICAL = 60; // px m\u00e1ximos de deslocamento vertical tolerado
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("videos");
   const [query, setQuery] = useState("");
+
+  // ╌╌ Gesto de arrastar (swipe) para trocar de aba no mobile — versão menos sensível
+  const touchStart = useRef({ x: 0, y: 0, t: 0 });
+  const isHorizontal = useRef(false);
+  const SWIPE_MAX_DURATION = 700; // ms
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+    isHorizontal.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - touchStart.current.x;
+    const dy = e.touches[0].clientY - touchStart.current.y;
+    // detecta se o gesto é horizontal (mais que 1.5x o vertical) e já um pouco significativo
+    if (Math.abs(dx) > 10 && Math.abs(dx) > 1.5 * Math.abs(dy)) {
+      isHorizontal.current = true;
+    } else if (Math.abs(dy) > 10 && Math.abs(dy) > 1.5 * Math.abs(dx)) {
+      isHorizontal.current = false;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStart.current.x;
+    const dy = e.changedTouches[0].clientY - touchStart.current.y;
+    const dt = Date.now() - touchStart.current.t;
+
+    // Se o gesto nao foi marcado como horizontal, ignora (permite scroll)
+    if (!isHorizontal.current) return;
+    if (dt > SWIPE_MAX_DURATION) return; // gesto muito longo -> ignora
+    if (Math.abs(dx) < SWIPE_MIN_DISTANCE) return; // movimento horizontal curto -> ignora
+
+    const currentIndex = tabOrder.indexOf(activeTab);
+    if (dx < 0 && currentIndex < tabOrder.length - 1) {
+      // arrastou para a esquerda → próxima aba
+      setActiveTab(tabOrder[currentIndex + 1]);
+      setQuery("");
+    } else if (dx > 0 && currentIndex > 0) {
+      // arrastou para a direita → aba anterior
+      setActiveTab(tabOrder[currentIndex - 1]);
+      setQuery("");
+    }
+  };
 
   return (
     <>
@@ -177,8 +224,23 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Mobile content */}
-        <main style={{ flex: 1, maxWidth: 480, width: "100%", margin: "0 auto", padding: "20px 16px 128px" }}>
+        {/* Mobile content \u2014 arrastar para os lados troca de aba (videos/docs/prompts) */}
+        <main
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            flex: 1,
+            maxWidth: 480,
+            width: "100%",
+            margin: "0 auto",
+            padding: "20px 16px 128px",
+            touchAction: "pan-y",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            maxHeight: "calc(100dvh - 112px)",
+          }}
+        >
           {activeTab === "videos" && <VideoTab searchQuery={query} />}
           {activeTab === "docs" && <DocsTab searchQuery={query} />}
           {activeTab === "prompts" && <PromptsTab searchQuery={query} />}

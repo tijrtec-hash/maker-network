@@ -1,19 +1,31 @@
-Versao gerada em: 24/08/2026 (correcao)
-Correcao aplicada:
+Versao gerada em: 24/08/2026 (correcao layout mobile + swipe)
+Correcoes/Features aplicadas:
 
-1. BUG DA MINIATURA ACHATADA:
-   O card de thumbnail usava <button> com padding-bottom: 56.25% para
-   manter a proporcao 16:9. Varios navegadores (Safari/iOS em especial)
-   tem bugs conhecidos com padding percentual dentro de <button>, o que
-   fazia o card "achatar" para uma altura minima, cortando o botao de
-   play e escondendo a imagem de fundo.
-   Corrigido: trocado <button> por <div role="button"> usando a
-   propriedade moderna aspect-ratio: 16/9, muito mais confiavel entre
-   navegadores. Tambem separei o background em backgroundImage/backgroundSize/
-   backgroundPosition (antes estava em shorthand unico, que pode falhar
-   silenciosamente se algum valor nao for reconhecido).
+1. BUG DO LAYOUT LARGO NO MOBILE:
+   Os cards de secao (Aulas Completas, Dicas Rapidas etc.) usavam
+   "white-space: nowrap" + "text-overflow: ellipsis" para truncar o texto,
+   tecnica que tem bugs conhecidos de calculo de largura minima em
+   navegadores mobile, forcando o card a crescer alem do espaco disponivel
+   e alargando a pagina inteira.
+   Corrigido: criado componente MarqueeText.tsx que mede o texto de forma
+   segura e trava a largura do container. Tambem foi adicionado
+   "overflow-x: hidden" global no html/body como protecao extra contra
+   qualquer vazamento de largura futuro.
 
-2. ICONE DO BOTAO ADM (DESKTOP):
-   O circulo ADM na sidebar do desktop mostrava o texto "ADM". Trocado
-   pelo mesmo icone de 4 quadradinhos ja usado no botao admin do mobile,
-   para manter consistencia visual entre as duas versoes.
+2. EFEITO "LETREIRO DIGITAL" (marquee):
+   Titulos que nao cabem no card (ex: nas secoes Aulas Completas, Dicas
+   Rapidas, Tutoriais, Cases e Aplicacoes) agora:
+   - Ficam parados por 2s
+   - Rolam suavemente revelando o texto completo
+   - Pausam por 2s no final
+   - Esmaecem (fade out) e voltam ao inicio (fade in), reiniciando o loop
+   - Tem uma vinheta leve (fade via mask-image) nas bordas esquerda/direita
+     do card para suavizar o corte do texto
+   Titulos que cabem inteiros no espaco ficam estaticos normalmente, sem
+   nenhuma animacao.
+
+3. TROCA DE ABA POR GESTO NO MOBILE:
+   Arrastar o dedo para a esquerda ou direita na area de conteudo do
+   mobile agora troca entre as abas Videos -> Docs -> Prompts (e volta).
+   O gesto so e reconhecido quando o movimento horizontal e claramente
+   maior que o vertical, para nao conflitar com o scroll normal da pagina.
