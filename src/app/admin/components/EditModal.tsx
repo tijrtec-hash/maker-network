@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { ContentType } from "@/types";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
+import { SECTIONS_BY_TYPE } from "@/lib/sections";
 
 export interface ManageRow {
   id: string;
@@ -16,6 +17,8 @@ export interface ManageRow {
   content?: string;
   cover_url?: string;
   storage_path?: string;
+  sort_order?: number;
+  section?: string | null;
 }
 
 interface EditModalProps {
@@ -37,6 +40,7 @@ export function EditModal({ type, item, onClose, onSaved }: EditModalProps) {
   const [url, setUrl] = useState(item.embed_url || item.file_url || "");
   const [content, setContent] = useState(item.content || "");
   const [status, setStatus] = useState(item.status);
+  const [section, setSection] = useState(item.section || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +48,7 @@ export function EditModal({ type, item, onClose, onSaved }: EditModalProps) {
     setError(null);
     if (!title.trim()) { setError("O título não pode ficar vazio."); return; }
 
-    const patch: Record<string, unknown> = { title: title.trim(), status };
+    const patch: Record<string, unknown> = { title: title.trim(), status, section: section || null };
 
     if (type === "video") {
       const embed = getYouTubeEmbedUrl(url) ?? url;
@@ -107,6 +111,14 @@ export function EditModal({ type, item, onClose, onSaved }: EditModalProps) {
             <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={7} style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "inherit" }} />
           </>
         )}
+
+        <label style={labelStyle}>Seção</label>
+        <select value={section} onChange={(e) => setSection(e.target.value)} style={inputStyle}>
+          <option value="">Sem seção</option>
+          {SECTIONS_BY_TYPE[type].map((s) => (
+            <option key={s.slug} value={s.slug}>{s.label}</option>
+          ))}
+        </select>
 
         <label style={labelStyle}>Status</label>
         <select value={status} onChange={(e) => setStatus(e.target.value as ManageRow["status"])} style={inputStyle}>

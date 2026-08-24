@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Prompt } from "@/types";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-export default function PromptPage({ params }: { params: { id: string } }) {
+export default function PromptPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -16,14 +17,14 @@ export default function PromptPage({ params }: { params: { id: string } }) {
       const { data } = await supabase
         .from("prompts")
         .select("*")
-        .eq("id", params.id)
+        .eq("id", id)
         .eq("status", "approved")
         .single();
       setPrompt(data as Prompt | null);
       setLoading(false);
     }
     load();
-  }, [params.id]);
+  }, [id]);
 
   const handleCopy = async () => {
     if (!prompt) return;
@@ -66,16 +67,17 @@ export default function PromptPage({ params }: { params: { id: string } }) {
   if (!prompt) return notFound();
 
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+    <div className="detail-shell">
+      <div className="detail-card">
       {/* Header */}
-      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "oklch(0.08 0.01 280 / 0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid oklch(0.28 0.04 280 / 0.4)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, maxWidth: 480, margin: "0 auto", width: "100%" }}>
+      <header className="detail-header" style={{ position: "sticky", top: 0, zIndex: 50, background: "oklch(0.08 0.01 280 / 0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid oklch(0.28 0.04 280 / 0.4)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, maxWidth: 480, margin: "0 auto", width: "100%" }}>
         <Link href="/" aria-label="Voltar" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "oklch(0.16 0.02 280)", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", textDecoration: "none", flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
         </Link>
         <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--text-muted)" }}>Prompt</span>
       </header>
 
-      <main style={{ flex: 1, maxWidth: 480, width: "100%", margin: "0 auto", padding: "28px 16px 48px" }}>
+      <main className="detail-main" style={{ flex: 1, maxWidth: 480, width: "100%", margin: "0 auto", padding: "28px 16px 48px" }}>
         {/* Cover */}
         <div style={{ borderRadius: "var(--radius-lg)", overflow: "hidden", background: prompt.cover_url ? `url(${prompt.cover_url}) center/cover` : "linear-gradient(135deg, oklch(0.16 0.04 292) 0%, oklch(0.20 0.03 145) 100%)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, aspectRatio: "16/7" }}>
           {!prompt.cover_url && (
@@ -142,6 +144,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
           </button>
         </div>
       </main>
+      </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

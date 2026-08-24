@@ -34,17 +34,28 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
             paddingBottom: 8,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
             <span
               style={{
-                fontWeight: 800,
-                fontSize: 20,
-                letterSpacing: "-0.02em",
+                fontFamily: "var(--font-coolvetica)",
+                fontWeight: 400,
+                fontSize: 22,
+                letterSpacing: "0.01em",
                 color: "var(--text-primary)",
               }}
             >
-              IA MAKER{" "}
-              <span style={{ color: "var(--accent)" }}>Network</span>
+              IA MAKER
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-alegreya)",
+                fontStyle: "italic",
+                fontWeight: 600,
+                fontSize: 19,
+                color: "var(--accent)",
+              }}
+            >
+              network
             </span>
           </div>
           <div

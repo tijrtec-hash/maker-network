@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Doc } from "@/types";
 import { notFound } from "next/navigation";
@@ -19,7 +19,8 @@ function DocIcon() {
   );
 }
 
-export default function DocPage({ params }: { params: { id: string } }) {
+export default function DocPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [doc, setDoc] = useState<Doc | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,14 +29,14 @@ export default function DocPage({ params }: { params: { id: string } }) {
       const { data } = await supabase
         .from("docs")
         .select("*")
-        .eq("id", params.id)
+        .eq("id", id)
         .eq("status", "approved")
         .single();
       setDoc(data as Doc | null);
       setLoading(false);
     }
     load();
-  }, [params.id]);
+  }, [id]);
 
   if (loading) {
     return (
@@ -51,16 +52,17 @@ export default function DocPage({ params }: { params: { id: string } }) {
   if (!doc) return notFound();
 
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+    <div className="detail-shell">
+      <div className="detail-card">
       {/* Header */}
-      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "oklch(0.08 0.01 280 / 0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid oklch(0.28 0.04 280 / 0.4)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, maxWidth: 480, margin: "0 auto", width: "100%" }}>
+      <header className="detail-header" style={{ position: "sticky", top: 0, zIndex: 50, background: "oklch(0.08 0.01 280 / 0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid oklch(0.28 0.04 280 / 0.4)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, maxWidth: 480, margin: "0 auto", width: "100%" }}>
         <Link href="/" aria-label="Voltar" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "oklch(0.16 0.02 280)", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", textDecoration: "none", flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
         </Link>
         <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--text-muted)" }}>Documento</span>
       </header>
 
-      <main style={{ flex: 1, maxWidth: 480, width: "100%", margin: "0 auto", padding: "28px 16px 48px" }}>
+      <main className="detail-main" style={{ flex: 1, maxWidth: 480, width: "100%", margin: "0 auto", padding: "28px 16px 48px" }}>
         {/* Cover */}
         <div style={{ borderRadius: "var(--radius-lg)", overflow: "hidden", background: doc.cover_url ? `url(${doc.cover_url}) center/cover` : "linear-gradient(135deg, oklch(0.16 0.03 292) 0%, oklch(0.20 0.04 280) 100%)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, aspectRatio: "16/7" }}>
           {!doc.cover_url && <DocIcon />}
@@ -89,13 +91,22 @@ export default function DocPage({ params }: { params: { id: string } }) {
         {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {doc.file_url && doc.file_url !== "#" && (
-            <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "15px", borderRadius: "var(--radius-md)", background: "oklch(0.55 0.22 292)", border: "none", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none", boxShadow: "0 0 24px var(--accent-glow)" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              Abrir documento
-            </a>
+            <>
+              <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "15px", borderRadius: "var(--radius-md)", background: "oklch(0.55 0.22 292)", border: "none", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none", boxShadow: "0 0 24px var(--accent-glow)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+                Abrir documento
+              </a>
+              <a href={doc.file_url} download target="_blank" rel="noopener noreferrer"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px", borderRadius: "var(--radius-md)", background: "oklch(0.16 0.02 280)", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", fontWeight: 500, fontSize: 14, textDecoration: "none" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Baixar arquivo
+              </a>
+            </>
           )}
           <Link href="/"
             style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px", borderRadius: "var(--radius-md)", background: "oklch(0.16 0.02 280)", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", fontWeight: 500, fontSize: 14, textDecoration: "none" }}>
@@ -104,6 +115,7 @@ export default function DocPage({ params }: { params: { id: string } }) {
           </Link>
         </div>
       </main>
+      </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

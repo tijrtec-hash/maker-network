@@ -34,18 +34,43 @@ export function ManageList({ type }: ManageListProps) {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from(tableMap[type]).select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from(tableMap[type]).select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
     setRows((data as ManageRow[]) || []);
     setLoading(false);
   };
 
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= rows.length) return;
+
+    const current = rows[index];
+    const target = rows[targetIndex];
+
+    // Troca os valores de sort_order entre os dois itens e reflete localmente
+    // de forma otimista para o usuário ver o movimento na hora.
+    const newRows = [...rows];
+    newRows[index] = target;
+    newRows[targetIndex] = current;
+    setRows(newRows);
+
+    const currentOrder = current.sort_order ?? index;
+    const targetOrder = target.sort_order ?? targetIndex;
+
+    await Promise.all([
+      supabase.from(tableMap[type]).update({ sort_order: targetOrder }).eq("id", current.id),
+      supabase.from(tableMap[type]).update({ sort_order: currentOrder }).eq("id", target.id),
+    ]);
+  };
+
   useEffect(() => {
     load();
-    const channel = supabase
-      .channel(`manage-${type}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: tableMap[type] }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const channelName = `manage-${type}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const channel = supabase.channel(channelName);
+    channel.on("postgres_changes", { event: "*", schema: "public", table: tableMap[type] }, load);
+    channel.subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
@@ -76,8 +101,26 @@ export function ManageList({ type }: ManageListProps) {
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column" }}>
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <div key={row.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 0", borderBottom: "1px solid oklch(0.20 0.02 280 / 0.8)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0, paddingTop: 2 }}>
+              <button
+                onClick={() => handleMove(index, -1)}
+                disabled={index === 0}
+                aria-label={`Mover para cima: ${row.title}`}
+                style={{ width: 26, height: 22, borderRadius: 6, background: "oklch(0.18 0.02 280)", border: "1px solid var(--border-subtle)", color: index === 0 ? "var(--text-faint)" : "var(--text-muted)", cursor: index === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: index === 0 ? 0.4 : 1 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
+              </button>
+              <button
+                onClick={() => handleMove(index, 1)}
+                disabled={index === rows.length - 1}
+                aria-label={`Mover para baixo: ${row.title}`}
+                style={{ width: 26, height: 22, borderRadius: 6, background: "oklch(0.18 0.02 280)", border: "1px solid var(--border-subtle)", color: index === rows.length - 1 ? "var(--text-faint)" : "var(--text-muted)", cursor: index === rows.length - 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: index === rows.length - 1 ? 0.4 : 1 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.35, marginBottom: 5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>{row.title}</p>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
+import { SECTIONS_BY_TYPE } from "@/lib/sections";
 
 type ContentType = "video" | "doc" | "prompt";
 type DocInputMode = "link" | "upload";
@@ -17,6 +18,11 @@ interface FormState {
   docMode: DocInputMode;
   cover: File | null;
   coverPreview: string | null;
+  section: string;
+  playlistMode: "none" | "existing" | "new";
+  playlistId: string;
+  newPlaylistTitle: string;
+  newPlaylistSection: string;
 }
 
 const typeLabels: Record<ContentType, string> = { video: "Vídeo", doc: "Documento", prompt: "Prompt" };
@@ -39,7 +45,23 @@ const MAX_DOC = 50 * 1024 * 1024;
 const MAX_IMG = 5 * 1024 * 1024;
 
 export default function EnviarPage() {
-  const [form, setForm] = useState<FormState>({ type: "video", title: "", url: "", text: "", submitter: "", file: null, docMode: "link", cover: null, coverPreview: null });
+// Fetches approved playlists for the select dropdown
+function PlaylistSelect({ value, onChange, inputStyle }: { value: string; onChange: (v: string) => void; inputStyle: React.CSSProperties }) {
+  const [playlists, setPlaylists] = React.useState<{ id: string; title: string }[]>([]);
+  React.useEffect(() => {
+    import("@/lib/supabase").then(({ supabase }) => {
+      supabase.from("playlists").select("id,title").order("title").then(({ data }) => setPlaylists((data || []) as { id: string; title: string }[]));
+    });
+  }, []);
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle}>
+      <option value="">Selecione uma playlist...</option>
+      {playlists.map((pl) => <option key={pl.id} value={pl.id}>{pl.title}</option>)}
+    </select>
+  );
+}
+
+  const [form, setForm] = useState<FormState>({ type: "video", title: "", url: "", text: "", submitter: "", file: null, docMode: "link", cover: null, coverPreview: null, section: "", playlistMode: "none", playlistId: "", newPlaylistTitle: "", newPlaylistSection: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +114,16 @@ export default function EnviarPage() {
       if (form.cover) coverUrl = await uploadCover(form.cover);
 
       if (form.type === "video") {
-        const { error: err } = await supabase.from("videos").insert({ title: form.title, embed_url: videoEmbedUrl, submitted_by: form.submitter || null, status: "pending" });
+        const { data: newVideo, error: err } = await supabase.from("videos").insert({ title: form.title, embed_url: videoEmbedUrl, submitted_by: form.submitter || null, status: "pending", section: form.section || null }).select().single();
         if (err) throw err;
+        if (newVideo && form.playlistMode === "existing" && form.playlistId) {
+          const { data: existing } = await supabase.from("playlist_videos").select("sort_order").eq("playlist_id", form.playlistId).order("sort_order", { ascending: false }).limit(1);
+          const nextOrder = existing && existing.length > 0 ? (existing[0].sort_order + 1) : 0;
+          await supabase.from("playlist_videos").insert({ playlist_id: form.playlistId, video_id: newVideo.id, sort_order: nextOrder });
+        } else if (newVideo && form.playlistMode === "new" && form.newPlaylistTitle.trim()) {
+          const { data: newPl } = await supabase.from("playlists").insert({ title: form.newPlaylistTitle.trim(), section: form.newPlaylistSection || null }).select().single();
+          if (newPl) await supabase.from("playlist_videos").insert({ playlist_id: newPl.id, video_id: newVideo.id, sort_order: 0 });
+        }
       } else if (form.type === "doc") {
         let fileUrl: string | null = null;
         let storagePath: string | null = null;
@@ -119,12 +149,13 @@ export default function EnviarPage() {
 
   const reset = () => {
     if (form.coverPreview) URL.revokeObjectURL(form.coverPreview);
-    setForm({ type: "video", title: "", url: "", text: "", submitter: "", file: null, docMode: "link", cover: null, coverPreview: null });
+    setForm({ type: "video", title: "", url: "", text: "", submitter: "", file: null, docMode: "link", cover: null, coverPreview: null, section: "", playlistMode: "none", playlistId: "", newPlaylistTitle: "", newPlaylistSection: "" });
     setError(null); setFileError(null); setSubmitted(false);
   };
 
   if (submitted) return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px", maxWidth: 480, margin: "0 auto" }}>
+    <div className="detail-shell">
+      <div className="detail-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px", maxWidth: 480, margin: "0 auto" }}>
       <div style={{ width: 72, height: 72, borderRadius: "50%", background: "oklch(0.45 0.20 292 / 0.20)", border: "2px solid var(--border-accent)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, boxShadow: "0 0 32px var(--accent-glow)" }}>
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
       </div>
@@ -134,6 +165,7 @@ export default function EnviarPage() {
         <button onClick={reset} style={{ flex: 1, padding: "14px", borderRadius: "var(--radius-md)", background: "oklch(0.45 0.20 292 / 0.18)", border: "1px solid var(--border-accent)", color: "var(--accent-bright)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Enviar outro</button>
         <a href="/" style={{ flex: 1, padding: "14px", borderRadius: "var(--radius-md)", background: "oklch(0.16 0.02 280)", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", fontWeight: 500, fontSize: 15, textDecoration: "none", textAlign: "center" }}>Voltar</a>
       </div>
+      </div>
     </div>
   );
 
@@ -141,15 +173,16 @@ export default function EnviarPage() {
   const input = { width: "100%", padding: "13px 14px", borderRadius: "var(--radius-md)", background: "var(--bg-glass)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)", fontSize: 15, outline: "none" };
 
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
-      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "oklch(0.08 0.01 280 / 0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid oklch(0.28 0.04 280 / 0.4)", padding: "16px 20px", display: "flex", alignItems: "center", gap: 12, maxWidth: 480, margin: "0 auto", width: "100%" }}>
+    <div className="detail-shell">
+      <div className="detail-card">
+      <header className="detail-header" style={{ position: "sticky", top: 0, zIndex: 50, background: "oklch(0.08 0.01 280 / 0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid oklch(0.28 0.04 280 / 0.4)", padding: "16px 20px", display: "flex", alignItems: "center", gap: 12, maxWidth: 480, margin: "0 auto", width: "100%" }}>
         <a href="/" aria-label="Voltar" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "oklch(0.16 0.02 280)", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", textDecoration: "none", flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
         </a>
         <h1 style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em" }}>Enviar conteúdo</h1>
       </header>
 
-      <main style={{ flex: 1, maxWidth: 480, width: "100%", margin: "0 auto", padding: "24px 16px 48px" }}>
+      <main className="detail-main" style={{ flex: 1, maxWidth: 480, width: "100%", margin: "0 auto", padding: "24px 16px 48px" }}>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
           {/* Type */}
@@ -272,6 +305,17 @@ export default function EnviarPage() {
             </div>
           )}
 
+          {/* Section selector */}
+          <div>
+            <label htmlFor="section" style={label("Seção (opcional)")}>Seção (opcional)</label>
+            <select id="section" value={form.section} onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))} style={input}>
+              <option value="">Sem seção específica</option>
+              {SECTIONS_BY_TYPE[form.type].map((s) => (
+                <option key={s.slug} value={s.slug}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Submitter */}
           <div>
             <label htmlFor="submitter" style={label("Seu nome (opcional)")}>Seu nome (opcional)</label>
@@ -301,6 +345,7 @@ export default function EnviarPage() {
           </button>
         </form>
       </main>
+      </div>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }

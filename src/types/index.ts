@@ -6,6 +6,8 @@ export interface Video {
   status: "pending" | "approved" | "rejected";
   submitted_by?: string;
   created_at: string;
+  sort_order?: number;
+  section?: string | null;
 }
 
 export interface Doc {
@@ -16,6 +18,8 @@ export interface Doc {
   status: "pending" | "approved" | "rejected";
   submitted_by?: string;
   created_at: string;
+  sort_order?: number;
+  section?: string | null;
 }
 
 export interface Prompt {
@@ -25,6 +29,18 @@ export interface Prompt {
   content: string;
   status: "pending" | "approved" | "rejected";
   submitted_by?: string;
+  created_at: string;
+  sort_order?: number;
+  section?: string | null;
+}
+
+export interface Playlist {
+  id: string;
+  title: string;
+  description?: string | null;
+  cover_url?: string | null;
+  sort_order?: number;
+  section?: string | null;
   created_at: string;
 }
 

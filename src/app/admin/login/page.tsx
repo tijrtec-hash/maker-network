@@ -31,8 +31,9 @@ export default function LoginPage() {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <span style={{ fontWeight: 800, fontSize: 24, letterSpacing: "-0.02em" }}>
-              IA MAKER <span style={{ color: "var(--accent)" }}>Network</span>
+            <span style={{ fontFamily: "var(--font-coolvetica)", fontWeight: 400, fontSize: 26, letterSpacing: "0.01em" }}>
+              IA MAKER{" "}
+              <span style={{ fontFamily: "var(--font-alegreya)", fontStyle: "italic", fontWeight: 600, color: "var(--accent)" }}>network</span>
             </span>
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent)", boxShadow: "0 0 10px var(--accent)" }} />
           </div>

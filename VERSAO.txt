@@ -1,0 +1,19 @@
+Versao gerada em: 24/08/2026 (correcao)
+Correcao aplicada:
+
+1. BUG DA MINIATURA ACHATADA:
+   O card de thumbnail usava <button> com padding-bottom: 56.25% para
+   manter a proporcao 16:9. Varios navegadores (Safari/iOS em especial)
+   tem bugs conhecidos com padding percentual dentro de <button>, o que
+   fazia o card "achatar" para uma altura minima, cortando o botao de
+   play e escondendo a imagem de fundo.
+   Corrigido: trocado <button> por <div role="button"> usando a
+   propriedade moderna aspect-ratio: 16/9, muito mais confiavel entre
+   navegadores. Tambem separei o background em backgroundImage/backgroundSize/
+   backgroundPosition (antes estava em shorthand unico, que pode falhar
+   silenciosamente se algum valor nao for reconhecido).
+
+2. ICONE DO BOTAO ADM (DESKTOP):
+   O circulo ADM na sidebar do desktop mostrava o texto "ADM". Trocado
+   pelo mesmo icone de 4 quadradinhos ja usado no botao admin do mobile,
+   para manter consistencia visual entre as duas versoes.

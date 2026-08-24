@@ -3,16 +3,28 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { VideoCard } from "./VideoCard";
-import { SearchBar } from "./SearchBar";
 import { FilterBar } from "./FilterBar";
+import { SectionCard } from "./SectionCard";
+import { Pagination } from "./Pagination";
 import { Video } from "@/types";
+import { VIDEO_SECTIONS } from "@/lib/sections";
+import { useIsDesktop } from "@/lib/useIsDesktop";
 
-export function VideoTab() {
+const PAGE_SIZE_MOBILE = 5;
+const PAGE_SIZE_DESKTOP = 12;
+
+interface VideoTabProps {
+  searchQuery?: string;
+}
+
+export function VideoTab({ searchQuery = "" }: VideoTabProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState("recent");
+  const [sort, setSort] = useState("manual");
+  const [page, setPage] = useState(1);
+  const isDesktop = useIsDesktop();
+  const PAGE_SIZE = isDesktop ? PAGE_SIZE_DESKTOP : PAGE_SIZE_MOBILE;
 
   useEffect(() => {
     async function load() {
@@ -21,6 +33,7 @@ export function VideoTab() {
         .from("videos")
         .select("*")
         .eq("status", "approved")
+        .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
       if (err) setError(err.message);
       else setVideos(data as Video[]);
@@ -31,8 +44,8 @@ export function VideoTab() {
 
   const filtered = useMemo(() => {
     let list = videos;
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
       list = list.filter((v) => v.title.toLowerCase().includes(q));
     }
     const sorted = [...list];
@@ -40,11 +53,16 @@ export function VideoTab() {
     else if (sort === "oldest") sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     else if (sort === "az") sorted.sort((a, b) => a.title.localeCompare(b.title));
     return sorted;
-  }, [videos, query, sort]);
+  }, [videos, searchQuery, sort]);
+
+  useEffect(() => { setPage(1); }, [searchQuery, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (loading) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="videos-grid" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {[1, 2, 3].map((i) => (
           <div key={i} className="shimmer" style={{ borderRadius: "var(--radius-lg)", height: 240 }} />
         ))}
@@ -62,8 +80,31 @@ export function VideoTab() {
 
   return (
     <div>
-      <SearchBar value={query} onChange={setQuery} placeholder="Buscar vídeos..." />
-      <FilterBar sort={sort} onSortChange={setSort} />
+      {/* Seções — pills on desktop, cards on mobile */}
+      <div style={{ marginBottom: 20 }}>
+        {/* Desktop pill row */}
+        <div className="section-pills-row desktop-only">
+          {VIDEO_SECTIONS.map((s) => (
+            <a key={s.slug} href={`/videos/secao/${s.slug}`} className="section-pill-desktop">
+              {s.label}
+            </a>
+          ))}
+        </div>
+        {/* Mobile card grid */}
+        <div className="mobile-only">
+          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 10 }}>Seções</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+            {VIDEO_SECTIONS.map((s) => (
+              <SectionCard key={s.slug} type="video" slug={s.slug} label={s.label} count={videos.filter((v) => v.section === s.slug).length} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Filter bar — desktop hides label */}
+      <div style={{ marginBottom: 16 }}>
+        <FilterBar sort={sort} onSortChange={setSort} options={[{ value: "manual", label: "Ordem do painel" }, { value: "recent", label: "Mais recentes" }, { value: "oldest", label: "Mais antigos" }, { value: "az", label: "A - Z" }]} />
+      </div>
 
       {videos.length === 0 ? (
         <div style={{ padding: "48px 0", textAlign: "center", color: "var(--text-faint)" }}>
@@ -74,14 +115,17 @@ export function VideoTab() {
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ padding: "48px 0", textAlign: "center", color: "var(--text-faint)" }}>
-          <p style={{ fontSize: 14 }}>Nenhum resultado para &ldquo;{query}&rdquo;.</p>
+          <p style={{ fontSize: 14 }}>Nenhum resultado para &ldquo;{searchQuery}&rdquo;.</p>
         </div>
       ) : (
-        <section aria-label="Vídeos" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {filtered.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-        </section>
+        <>
+          <section aria-label="Vídeos" className="videos-grid" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {paginated.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </section>
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
       )}
     </div>
   );
