@@ -42,7 +42,18 @@ export function getYouTubeEmbedUrl(rawUrl: string): string | null {
   return `https://www.youtube.com/embed/${videoId}`;
 }
 
-/** Verifica se uma URL já está pronta para ser usada em iframe. */
+/** Verifica se uma URL j\u00e1 est\u00e1 pronta para ser usada em iframe. */
 export function isEmbeddableUrl(url: string): boolean {
   return /youtube(-nocookie)?\.com\/embed\//.test(url) || /player\.vimeo\.com\/video\//.test(url);
+}
+
+/**
+ * Extrai a URL da thumbnail de alta resolu\u00e7\u00e3o a partir de uma URL de embed
+ * do YouTube (ex: https://www.youtube.com/embed/VIDEO_ID). Retorna null se
+ * n\u00e3o for poss\u00edvel identificar o v\u00eddeo (ex: Vimeo).
+ */
+export function getYouTubeThumbnail(embedUrl: string): string | null {
+  const match = embedUrl.match(/youtube(?:-nocookie)?\.com\/embed\/([^/?&]+)/);
+  if (!match) return null;
+  return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
 }
