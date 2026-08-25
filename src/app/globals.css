@@ -363,22 +363,3 @@ button:active { transform: scale(0.97); }
     gap: 16px !important;
   }
 }
-
-/* SCROLL_FIX_APPLIED /
-html, body, #__next {
-height: auto !important;
-min-height: 100% !important;
-overflow: auto !important;
--webkit-overflow-scrolling: touch; / iOS smooth scroll */
-}
-
-main, .page-root {
-min-height: 100vh;
-overflow: auto;
-}
-
-.scrollable {
-overflow: auto;
--webkit-overflow-scrolling: touch;
-}
-/* End SCROLL_FIX_APPLIED */
