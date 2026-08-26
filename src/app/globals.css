@@ -363,3 +363,22 @@ button:active { transform: scale(0.97); }
     gap: 16px !important;
   }
 }
+
+
+/* Mobile-specific: ensure containers are scrollable on small screens */
+@media (max-width: 767px) {
+  html, body {
+    overscroll-behavior: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  main, .detail-main, .admin-scroll, .admin-content, .detail-card, .mobile-layout {
+    overflow: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overscroll-behavior: auto !important;
+  }
+}
