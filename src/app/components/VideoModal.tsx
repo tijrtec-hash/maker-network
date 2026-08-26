@@ -8,12 +8,20 @@ interface VideoModalProps {
   onClose: () => void;
 }
 
+// Contador global de modais abertos. Usar um contador (em vez de guardar o
+// valor anterior de `overflow` por instância) evita que o scroll do body
+// fique travado permanentemente quando dois modais chegam a coexistir por
+// um instante (ex.: troca rápida de vídeo, fechamento com animação em
+// andamento). Só removemos o "hidden" quando o último modal desmonta.
+let openModalCount = 0;
+
 export function VideoModal({ embedUrl, title, onClose }: VideoModalProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setVisible(true));
-    const prevOverflow = document.documentElement.style.overflow;
+
+    openModalCount += 1;
     document.documentElement.style.overflow = "hidden";
 
     const handleKey = (e: KeyboardEvent) => {
@@ -23,7 +31,10 @@ export function VideoModal({ embedUrl, title, onClose }: VideoModalProps) {
 
     return () => {
       cancelAnimationFrame(raf);
-      document.documentElement.style.overflow = prevOverflow;
+      openModalCount = Math.max(0, openModalCount - 1);
+      if (openModalCount === 0) {
+        document.documentElement.style.overflow = "";
+      }
       window.removeEventListener("keydown", handleKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,7 +69,7 @@ export function VideoModal({ embedUrl, title, onClose }: VideoModalProps) {
     >
       <button
         onClick={handleClose}
-        aria-label="Fechar v\u00eddeo"
+        aria-label="Fechar vídeo"
         style={{
           position: "absolute",
           top: 20,
