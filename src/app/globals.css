@@ -381,4 +381,55 @@ button:active { transform: scale(0.97); }
     min-height: 0 !important;
     overscroll-behavior: auto !important;
   }
+
+}
+/* Desktop: permitir scroll da página e dos conteúdos principais */
+@media (min-width: 768px) {
+  /* permita que o shell cresça em vez de forçar altura fixa */
+  .desktop-shell,
+  .admin-shell-inner,
+  .detail-card {
+    min-height: calc(100dvh - 48px) !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* main deve poder rolar internamente quando necessário */
+  .desktop-main,
+  .admin-content-desktop,
+  .admin-content,
+  .admin-scroll {
+    overflow: auto !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* evita barras internas desnecessárias em containers pequenos */
+  .desktop-main > header,
+  .desktop-main > footer {
+    flex-shrink: 0;
+  }
+}
+
+/* Desktop: permitir scroll e evitar containers com altura fixa que cortam conteúdo */
+@media (min-width: 768px) {
+html, body {
+overflow: auto !important;
+height: auto !important;
+min-height: 0 !important;
+}
+
+.detail-shell, .desktop-shell, .detail-card, .detail-main, main, .ambient-bg, .admin-shell-inner {
+min-height: 0 !important;
+height: auto !important;
+overflow: visible !important;
+}
+
+.desktop-main, .admin-content-desktop, .admin-content, .admin-scroll {
+overflow: auto !important;
+overflow-y: auto !important;
+height: auto !important;
+min-height: 0 !important;
+}
 }
